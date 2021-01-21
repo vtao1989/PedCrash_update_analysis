@@ -24,7 +24,6 @@ intersection_data_summary = intersection_data %>%
   select(-JuncID) %>% 
   stat.desc(basic = T) %>%
   slice(9L, 13L, 4L, 5L) %>%
-  round(2) %>% 
   t() %>% 
   as.data.frame() %>% 
   rownames_to_column()
@@ -33,10 +32,38 @@ block_data_summary = block_data %>%
   select(-OFT, -StrtTp, -FID) %>% 
   stat.desc(basic = T) %>%
   slice(9L, 13L, 4L, 5L) %>%
-  round(2) %>% 
   t() %>% 
   as.data.frame() %>% 
   rownames_to_column()
+
+vari_list = c('PedCrashNum', 'BikeCrashNum',
+              'LnPedCount', 'LnBikeCount', 'LnAADT',
+              'PopDen', 'JobDen', 'IntNum', 'TraStop', 'PerCommercial', 'PerOffice', 'PerIndustrial', 'PerOpenspace', 'LandMix',
+              'Downtown', 'Sidewalk', 'Bikelane', 'Trail', 'StLight', 'TraSignal', 
+              'LaneWidth', 'LegNum', 'MainNum', 'SecondNum', 'Main', 'Second',
+              'PerChild', 'PerOld', 'PerMale', 'AvgHHSize', 'PerWhite', 'Poverty', '(Intercept)')
+
+vari_name_list = c('Number of pedestrian crashes', 'Number of bicycle crashes',
+                   'Ln(Actual pedestrian count)', 'Ln(Actual bike count)', 'Ln(Actual AADT)',
+                   'Population density', 'Job density', 'Number of intersections', 'Presence of transit stop',
+                   'Share of commercial area', 'Share of office area', 'Share of industrial area', 'Share of open space', 'Land use entropy',
+                   'Downtown', 'Presence of sidewalk', 'Presence of bike lane', 'Presence of trail',
+                   'Presence of street light',
+                   'Presence of traffic signal',
+                   'Travel width of lane', 'Number of legs', 'Number of main roads', 'Number of secondary roads', 'Presence of main road', 'Presence of secondary road',
+                   'Share of children', 'Share of seniors', 'Share of men',
+                   'Average household size', 'Share of white population', 'Share of poverty population', 'Constant')
+
+data.frame(id = 1:length(vari_list),
+             variable = vari_list,
+             variable.name = vari_name_list) %>% 
+  left_join(select(intersection_data_summary, -min, -max),
+            by = c('variable'='rowname')) %>% 
+  left_join(select(block_data_summary, -min, -max),
+            by = c('variable'='rowname')) %>% 
+  write.csv('./result/desc_stat.csv', row.names = F, na = '')
+
+
 
 ## correlation
 vari_int_list = c('LnPedCount', 'LnBikeCount', 'LnAADT',
@@ -233,20 +260,7 @@ saveRDS(bike_block_no_exp, './result/bike_block_no_exp.RDS')
 
 # combine result ----------------------------------------------------------
 
-vari_list = c('LnPedCount', 'LnBikeCount', 'LnAADT',
-              'PopDen', 'JobDen', 'IntNum', 'TraStop', 'PerCommercial', 'PerOffice', 'PerIndustrial', 'PerOpenspace', 'LandMix',
-              'Downtown', 'LaneWidth', 'Sidewalk', 'Bikelane', 'Trail', 'StLight', 'TraSignal', 
-              'Main', 'Second', 'MainNum', 'SecondNum', 'LegNum',
-              'PerChild', 'PerOld', 'PerMale', 'AvgHHSize', 'PerWhite', 'Poverty', '(Intercept)')
 
-vari_name_list = c('Ln(Actual pedestrian count)', 'Ln(Actual bike count)', 'Ln(Actual AADT)',
-                   'Population density', 'Job density', 'Number of intersections', 'Presence of transit stop',
-                   'Share of commercial area', 'Share of office area', 'Share of industrial area', 'Share of open space', 'Land use entropy',
-                   'Downtown', 'Travel width of lane', 'Presence of sidewalk', 'Presence of bike lane',
-                   'Presence of trail', 'Presence of street light', 'Presence of traffic signal',
-                   'Presence of main road', 'Presence of secondary road', 'Number of main roads', 'Number of secondary roads', 'Number of legs',
-                   'Share of children', 'Share of seniors', 'Share of men',
-                   'Average household size', 'Share of white population', 'Share of poverty population', 'Constant')
 
 ## models with two exposure variables
 model_result = data.frame(id = 1:length(vari_list),

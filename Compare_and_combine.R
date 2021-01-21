@@ -97,12 +97,13 @@ old_intersection_result %>%
     Second = ifsecondary,
     Local = iflocal
   ) %>% 
+  mutate(StopSign = ifelse(is.na(StpSignNum), 0, 1)) %>% 
   select(
     JuncID, PedCrashNum, BikeCrashNum,
     PedCount, BikeCount, PedEstCount, BikeEstCount, AADT_MPLS, LnPedCount, LnBikeCount, LnAADT,
     IntNum, TraStop, (PerCommercial:PerOther),
     Downtown, City, ACP50,
-    Sidewalk, Bikelane, TraSignal, StLight, Trail, Main, Second, Local,
+    Sidewalk, Bikelane, TraSignal, StLight, Trail, Main, Second, Local, StopSign,
     (PerChild:AvgVeh),
     -PerPoverty
   ) %>% 
