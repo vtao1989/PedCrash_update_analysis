@@ -16,19 +16,26 @@ calc_ratio = function(per, p) {
   r2 = nrow(filter(p, ACP50 == 1, rank < q, rank_no_exp < q))/nrow(filter(p, ACP50 == 1, rank < q))
   n1 = nrow(filter(p, ACP50 == 1, rank < q))
   n2 = nrow(filter(p, ACP50 == 1, rank_no_exp < q))
-  d1 = nrow(filter(p, ACP50 == 1, rank_no_exp < q))/nrow(filter(p, ACP50 == 1, rank < q)) - 1
+  d1 = n2/n1 - 1
   return(c(r1, r2, n1, n2, d1))
 }
 
 ## function to read models, predict crashes, calculate numbers
-calc_result = function(person, location, data){
+calc_result = function(person, location){
   
   ## read models and predict crashes
+  if(location == 'int'){
+    data = new_intersection_result
+  } else {
+    data = new_block_result
+  }
+  
   model_loc = paste('./result/', person, '_', location, '_m.RDS', sep = '')
   m = readRDS(model_loc)
   pre = predict(m, data, type = 'response')
-  model_loc = paste('./result/', person, '_', location, '_no_exp.RDS', sep = '')
-  no_exp = readRDS(model_loc)
+  
+  no_exp_model_loc = paste('./result/', person, '_', location, '_no_exp.RDS', sep = '')
+  no_exp = readRDS(no_exp_model_loc)
   no_exp_pre = predict(no_exp, data, type = 'response')
   
   ## combine results
@@ -62,10 +69,10 @@ calc_result = function(person, location, data){
 }
 
 ## calculate numbers
-ped_int = calc_result('ped', 'int', new_intersection_result)
-ped_block = calc_result('ped', 'block', new_block_result)
-bike_int = calc_result('bike', 'int', new_intersection_result)
-bike_block = calc_result('bike', 'block', new_block_result)
+ped_int = calc_result('ped', 'int')
+ped_block = calc_result('ped', 'block')
+bike_int = calc_result('bike', 'int')
+bike_block = calc_result('bike', 'block')
 
 ## city level comparison
 cbind(ped_int$ratio[, 1],

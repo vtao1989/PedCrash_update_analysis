@@ -7,15 +7,11 @@ library(pastecs)
 library(reshape2)
 
 new_intersection_result = read.csv('./result/new_intersection_result.csv')
-new_block_result = read.csv('./result/new_block_result.csv')
 
 intersection_data = new_intersection_result %>% 
   filter(City > 0,
          PedCount > 0)
 
-block_data = new_block_result %>% 
-  filter(City > 0,
-         PedCount > 0)
 
 # desc --------------------------------------------------------------------
 
@@ -29,63 +25,6 @@ intersection_data_summary = intersection_data %>%
   as.data.frame() %>% 
   rownames_to_column()
 
-block_data_summary = block_data %>% 
-  select(-OFT, -StrtTp, -FID) %>% 
-  stat.desc(basic = T) %>%
-  slice(9L, 13L, 4L, 5L) %>%
-  round(2) %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column()
-
-## correlation
-vari_int_list = c('LnPedCount', 'LnBikeCount', 'LnAADT',
-              'PopDen', 'JobDen', 'IntNum', 'TraStop', 'PerCommercial', 'PerOffice', 'PerIndustrial', 'PerOpenspace', 'LandMix',
-              'Downtown', 'LaneWidth', 'Sidewalk', 'Bikelane', 'Trail', 'StLight', 'TraSignal', 
-              'MainNum', 'SecondNum', 'LegNum',
-              'PerChild', 'PerOld', 'PerMale', 'AvgHHSize', 'PerWhite', 'Poverty')
-
-cor_matrix = cor(subset(intersection_data, select = vari_int_list))
-
-vari_block_list = c('LnPedCount', 'LnBikeCount', 'LnAADT',
-                  'PopDen', 'JobDen', 'IntNum', 'TraStop', 'PerCommercial', 'PerOffice', 'PerIndustrial', 'PerOpenspace', 'LandMix',
-                  'Downtown', 'LaneWidth', 'Sidewalk', 'Bikelane', 
-                  'Main', 'Second',
-                  'PerChild', 'PerOld', 'PerMale', 'AvgHHSize', 'PerWhite', 'Poverty')
-
-cor_matrix = cor(subset(block_data, select = vari_block_list))
-
-get_upper_tri = function(cormat){
-  cormat[lower.tri(cormat)]= NA
-  return(cormat)
-}
-
-upper_tri = get_upper_tri(cor_matrix)
-
-melted_cormat = melt(upper_tri, na.rm = TRUE)
-
-ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
-  geom_tile(color = "white")+
-  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
-                       midpoint = 0, limit = c(-1,1), space = "Lab", 
-                       name="Pearson\nCorrelation") +
-  theme_minimal()+ # minimal theme
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
-                                   size = 11, hjust = 1))+
-  coord_fixed() +
-  geom_text(aes(Var2, Var1, label = round(value, 2)), color = "black", size = 4) +
-  theme(
-    axis.title.x = element_blank(),
-    axis.title.y = element_blank(),
-    panel.grid.major = element_blank(),
-    panel.border = element_blank(),
-    panel.background = element_blank(),
-    axis.ticks = element_blank(),
-    legend.justification = c(1, 0),
-    legend.position = c(0.6, 0.7),
-    legend.direction = "horizontal")+
-  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
-                               title.position = "top", title.hjust = 0.5))
 
 # model -------------------------------------------------------------------
 
@@ -110,4 +49,37 @@ summary(ped_int_m)
 
 ## deviance R2
 1-ped_int_m$deviance/ped_int_m$null.deviance
+
+## save results
+vari_list = c('LnPedCount', 'BikeCount', 'I(BikeCount^2)', 'LnAADT',
+              'PopDen', 'JobDen', 'IntNum', 'TraStop', 'PerCommercial', 'PerOffice', 'PerIndustrial', 'PerOpenspace', 'LandMix',
+              'Downtown', 'Sidewalk', 'Trail', 'StLight', 'TraSignal', 
+              'LaneWidth', 'LegNum', 'MainNum', 'SecondNum', 
+              'PerChild', 'PerOld', 'PerMale', 'AvgHHSize', 'PerWhite', 'Poverty', '(Intercept)')
+
+vari_name_list = c('Ln(Actual pedestrian count)', 'Actual bike count', '(Actual bike count)^2', 'Ln(Actual AADT)',
+                   'Population density', 'Job density', 'Number of intersections', 'Presence of transit stop',
+                   'Share of commercial area', 'Share of office area', 'Share of industrial area', 'Share of open space', 'Land use entropy',
+                   'Downtown', 'Presence of sidewalk', 'Presence of trail',
+                   'Presence of street light',
+                   'Presence of traffic signal',
+                   'Travel width of lane', 'Number of legs', 'Number of main roads', 'Number of secondary roads', 
+                   'Share of children', 'Share of seniors', 'Share of men',
+                   'Average household size', 'Share of white population', 'Share of poverty population', 'Constant')
+
+
+model_two_form_result = data.frame(id = 1:length(vari_list),
+                          variable = vari_list,
+                          variable.name = vari_name_list) %>% 
+  left_join(rownames_to_column(as.data.frame(coef(summary(ped_int_m))[, c(1,4)])), by = c('variable'='rowname')) %>% 
+  rename(ped_int = Estimate, ped_int_p = 'Pr(>|z|)') %>% 
+  mutate(ped_int_p_mark = case_when(
+    ped_int_p < 0.001 ~ '***',
+    ped_int_p < 0.01 ~ '**',
+    ped_int_p < 0.05 ~ '*'
+  )) %>% 
+  select(variable.name,
+         ped_int, ped_int_p_mark)
+
+write.csv(model_two_form_result, './result/model_two_form_result.csv', row.names = F, na = '')
 
