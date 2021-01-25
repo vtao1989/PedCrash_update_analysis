@@ -2,9 +2,8 @@
 # package -----------------------------------------------------------------
 
 library(tidyverse)
-library(car)
 library(pastecs)
-library(reshape2)
+library(car)
 
 new_intersection_result = read.csv('./result/new_intersection_result.csv')
 
